@@ -23,13 +23,21 @@
 */
 
 /** */
-async function startListening() {
-  let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    function: listenStarter,
+async function onSwitchClick(e) {
+  e.target.value = e.target.value === 'on' ? 'off' : 'on'
+  const listenSwitchValue = e.target.value
+  chrome.storage.local.set({listenSwitchValue}, function() {
+    console.log(`Listen switcher was set to ${listenSwitchValue}`);
   });
+
+  if (listenSwitchValue === 'on') {
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      function: listenStarter,
+    });
+  }
 }
 
 async function startReplaying() {
@@ -48,14 +56,13 @@ const replayStarter = () => {
       return
     }
     
-    console.log(`Clicking element with css selectors: "${clickedElements}"`)
-
     for(const elemString of clickedElements) {
       let elementToClick = document.querySelector(elemString)
-
+      
       while(true){
         try {
           elementToClick.click();
+          console.log(`Clicking element with css selector: "${elemString}"`)
           break
         } catch (_error) {
           elementToClick = elementToClick.parentElement
@@ -163,19 +170,29 @@ const listenStarter = () => {
    */
 
   /** */
+  const onStartListening = async (e) => {
+    chrome.storage.local.get("listenSwitchValue", ({ listenSwitchValue }) => {
+      if ( listenSwitchValue === 'on') {
+        const clickedElementSelectorString = extract_css_selector(e.target)
+        chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
+          let toPush = [];
+          
+          if(clickedElements) toPush = [...clickedElements, clickedElementSelectorString];
+          else toPush = [clickedElementSelectorString]
+          
+          chrome.storage.sync.set({ "clickedElements" : toPush });
+          console.log(`Element with css selector "${clickedElementSelectorString}" was clicked`)
+        });
+      }
+      else if (listenSwitchValue === 'off') {
+        document.body.removeEventListener("click",onStartListening)
+        console.log(`document click even listener removed`)
+      }
+    })
+  }
+  
   const body = document.body
-  body.addEventListener("click", async (e) => {
-    const clickedElementSelectorString = extract_css_selector(e.target)
-    chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
-      let toPush = [];
-      
-      if(clickedElements) toPush = [...clickedElements, clickedElementSelectorString];
-      else toPush = [clickedElementSelectorString]
-      
-      chrome.storage.sync.set({ "clickedElements" : toPush });
-      console.log(`Element with css selector "${clickedElementSelectorString}" was clicked`)
-    });
-  });
+  body.addEventListener("click", onStartListening);
 }
 
 const saveActions = () =>{
@@ -190,7 +207,7 @@ const clearClickedElements = () => {
 }
 
 const initialize = () => {
-  const listenButton = document.getElementById("listen-button")
+  const listenSwitch = document.querySelector(".switch-input")
   const replayButton = document.getElementById("replay-button")
   const saveButton = document.getElementById("save-button")
   const clearButton = document.getElementById("clear-button")
@@ -205,9 +222,8 @@ const initialize = () => {
     saveActions()
   })
 
-  listenButton.addEventListener('click', (e) => {
-    e.preventDefault()
-    startListening()
+  listenSwitch.addEventListener('click', (e) => {
+    onSwitchClick(e)
   })
 
   clearButton.addEventListener('click', (e) => {
