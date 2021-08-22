@@ -51,24 +51,28 @@ async function startReplaying() {
 
 const replayStarter = () => {
   chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
-    if(!clickedElements.length){
-      console.log(`No saved elements to replay`)
-      return
-    }
-    
-    for(const elemString of clickedElements) {
-      let elementToClick = document.querySelector(elemString)
-      
+    const replayAction = (actionItem) => {
+      let elementToClick = document.querySelector(actionItem.clickedElementSelectorString)
+          
       while(true){
         try {
           elementToClick.click();
-          console.log(`Clicking element with css selector: "${elemString}"`)
+          console.log(`Clicking element with css selector: "${actionItem.clickedElementSelectorString}"`)
           break
         } catch (_error) {
           elementToClick = elementToClick.parentElement
           continue
         }
       }
+    }
+
+    if(!clickedElements.length){
+      console.log(`No saved elements to replay`)
+      return
+    }
+    
+    for(const actionItem of clickedElements) {
+      replayAction(actionItem)
     }
   });
 }
@@ -173,12 +177,12 @@ const listenStarter = () => {
 
   const sendToStorage = (e) => {
     const clickedElementSelectorString = extract_css_selector(e.target)
-    const timeNow = Date.now()
+    const actionTime = Date.now()
     chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
       let toPush = [];
       
-      if(clickedElements) toPush = [...clickedElements, {clickedElementSelectorString, timeNow}];
-      else toPush = [{clickedElementSelectorString, timeNow}]
+      if(clickedElements) toPush = [...clickedElements, {clickedElementSelectorString, actionTime}];
+      else toPush = [{clickedElementSelectorString, actionTime}]
       
       chrome.storage.sync.set({ "clickedElements" : toPush });
       console.log(`Element with css selector "${clickedElementSelectorString}" was clicked`)
@@ -192,7 +196,7 @@ const listenStarter = () => {
       }
       else if (listenSwitchValue === 'off') {
         document.body.removeEventListener("click",onStartListening)
-        console.log(`document click even listener removed`)
+        console.log(`document click event listener removed`)
       }
     })
   }
@@ -212,11 +216,19 @@ const clearClickedElements = () => {
   console.log(`Clicked Elements array was emptied`)
 }
 
+
 const initialize = () => {
   const listenSwitch = document.querySelector(".switch-input")
   const replayButton = document.getElementById("replay-button")
   const saveButton = document.getElementById("save-button")
   const clearButton = document.getElementById("clear-button")
+  
+  chrome.storage.local.get("listenSwitchValue",({listenSwitchValue}) => {
+    if(listenSwitchValue === 'on'){
+      listenSwitch.click()
+    }
+    console.log(listenSwitchValue)
+  })
 
   replayButton.addEventListener('click', (e) => {
     e.preventDefault()
