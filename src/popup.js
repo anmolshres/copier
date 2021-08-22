@@ -1,7 +1,32 @@
+/**
+  MIT License
+
+  Copyright (c) 2017 Cindy Wang
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
+
 async function startListening() {
   // When the button is clicked, inject setPageBackgroundColor into current page
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  
+
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     function: listenStarter,
@@ -9,16 +34,113 @@ async function startListening() {
 }
 
 const listenStarter = () => {
+
+  /**
+   * Start of code from Cindy Wang at https://github.com/CindyLinz/JS-extract-css-selector
+   */
+  function extract_css_selector(target) {
+    var nodes, classList, c, d, cs, i;
+    var base, elem;
+    var selectors = '';
+
+    base = document.body;
+    elem = target;
+
+    function css_ident(str) {
+      return str.replace(/[^a-zA-Z0-9\xa0-\uffff]/g, '\\$&');
+    }
+
+    GAP: while (base !== target) {
+      if (elem.id) {
+        nodes = base.querySelectorAll('#' + css_ident(elem.id));
+        if (nodes.length === 1) {
+          selectors += ' #' + css_ident(elem.id);
+          base = elem;
+          elem = target;
+          continue GAP;
+        }
+      }
+
+      if (elem.name) {
+        nodes = base.querySelectorAll('[name="' + elem.name.replace(/(["\\])/g, '\\$1') + '"]');
+        if (nodes.length === 1) {
+          selectors += ' [name="' + elem.name.replace(/(["\\])/g, '\\$1') + '"]';
+          base = elem;
+          elem = target;
+          continue GAP;
+        }
+      }
+
+      cs = elem.classList;
+      for (i = 0; i < cs.length; ++i) {
+        c = css_ident(cs[i]);
+        nodes = base.querySelectorAll('.' + c);
+        if (nodes.length === 1) {
+          selectors += ' .' + c;
+          base = elem;
+          elem = target;
+          continue GAP;
+        }
+      }
+      for (i = 0; i < cs.length; ++i) {
+        c = css_ident(cs[i]);
+        nodes = base.querySelectorAll(elem.nodeName + '.' + c);
+        if (nodes.length === 1) {
+          selectors += ' ' + elem.nodeName + '.' + c;
+          base = elem;
+          elem = target;
+          continue GAP;
+        }
+      }
+
+      if (elem.parentNode === base) {
+        cs = elem.parentNode.children;
+        c = 1; d = 0;
+        for (i = 0; i < cs.length; ++i) {
+          if (cs[i] === elem) {
+            for (++i; i < cs.length; ++i) {
+              if (cs[i].nodeName === elem.nodeName)
+                ++d;
+            }
+            break;
+          }
+          if (cs[i].nodeName === elem.nodeName)
+            ++c;
+        }
+        if (c === 1 && d === 0)
+          selectors += '>' + elem.nodeName;
+        else if (c === 1)
+          selectors += '>' + elem.nodeName + ':first-of-type';
+        else if (d === 0)
+          selectors += '>' + elem.nodeName + ':last-of-type';
+        else
+          selectors += '>' + elem.nodeName + ':nth-of-type(' + c + ')';
+        base = elem;
+        elem = target;
+        continue GAP;
+      }
+
+      elem = elem.parentNode;
+    }
+
+    return selectors.substr(1);
+  }
+  /**
+   * End of code from Cindy Wang at https://github.com/CindyLinz/JS-extract-css-selector
+   */
+
   const body = document.body
   body.addEventListener("click", (e) => {
-    console.log(e.target)
+    const clickedElementSelector = extract_css_selector(e.target)
+    chrome.storage.sync.set({ clickedElementSelector });
+    console.log(clickedElementSelector)
   });
 }
 
 const initialize = () => {
   const listenButton = document.getElementById("listen-button")
 
-  listenButton.addEventListener('click',(e) => {
+  listenButton.addEventListener('click', (e) => {
     e.preventDefault()
     startListening()
   })
