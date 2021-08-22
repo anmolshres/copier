@@ -170,19 +170,24 @@ const listenStarter = () => {
    */
 
   /** */
+
+  const sendToStorage = (e) => {
+    const clickedElementSelectorString = extract_css_selector(e.target)
+    chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
+      let toPush = [];
+      
+      if(clickedElements) toPush = [...clickedElements, clickedElementSelectorString];
+      else toPush = [clickedElementSelectorString]
+      
+      chrome.storage.sync.set({ "clickedElements" : toPush });
+      console.log(`Element with css selector "${clickedElementSelectorString}" was clicked`)
+    });
+  }
+
   const onStartListening = async (e) => {
     chrome.storage.local.get("listenSwitchValue", ({ listenSwitchValue }) => {
       if ( listenSwitchValue === 'on') {
-        const clickedElementSelectorString = extract_css_selector(e.target)
-        chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
-          let toPush = [];
-          
-          if(clickedElements) toPush = [...clickedElements, clickedElementSelectorString];
-          else toPush = [clickedElementSelectorString]
-          
-          chrome.storage.sync.set({ "clickedElements" : toPush });
-          console.log(`Element with css selector "${clickedElementSelectorString}" was clicked`)
-        });
+        sendToStorage(e)
       }
       else if (listenSwitchValue === 'off') {
         document.body.removeEventListener("click",onStartListening)
