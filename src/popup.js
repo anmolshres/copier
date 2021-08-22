@@ -173,11 +173,12 @@ const listenStarter = () => {
 
   const sendToStorage = (e) => {
     const clickedElementSelectorString = extract_css_selector(e.target)
+    const timeNow = Date.now()
     chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
       let toPush = [];
       
-      if(clickedElements) toPush = [...clickedElements, clickedElementSelectorString];
-      else toPush = [clickedElementSelectorString]
+      if(clickedElements) toPush = [...clickedElements, {clickedElementSelectorString, timeNow}];
+      else toPush = [{clickedElementSelectorString, timeNow}]
       
       chrome.storage.sync.set({ "clickedElements" : toPush });
       console.log(`Element with css selector "${clickedElementSelectorString}" was clicked`)

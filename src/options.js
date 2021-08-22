@@ -5,7 +5,7 @@ const afterOpen = () => {
     const actionList = document.getElementById('actions-list')
     for (const action of clickedElements) {
       const listNode = document.createElement("LI")
-      const textNode = document.createTextNode(action)
+      const textNode = document.createTextNode(`${action.clickedElementSelectorString} clicked on DateTime ${action.timeNow}`)
       listNode.appendChild(textNode)
       actionList.appendChild(listNode)
     }
