@@ -1,8 +1,8 @@
 const afterOpen = () => {
   console.log('initialized')
 
-  chrome.storage.sync.get("clickedElementSelector", ({ clickedElementSelector }) => {
-    document.body.innerText = clickedElementSelector;
+  chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
+    document.body.innerHTML = clickedElements;
   });
 }
 

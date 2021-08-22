@@ -22,7 +22,7 @@
   SOFTWARE.
 */
 
-
+/** */
 async function startListening() {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -42,9 +42,17 @@ async function startReplaying() {
 }
 
 const replayStarter = () => {
-  chrome.storage.sync.get("clickedElementSelector", ({ clickedElementSelector }) => {
-    console.log(`Clicking element with css selector: "${clickedElementSelector}"`)
-    document.querySelector(clickedElementSelector).click();
+  chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
+    if(!clickedElements.length){
+      console.log(`No saved elements to replay`)
+      return
+    }
+    
+    console.log(`Clicking element with css selectors: "${clickedElements}"`)
+
+    for(const elemString of clickedElements) { 
+      document.querySelector(elemString).click();
+    }
   });
 }
 
@@ -145,25 +153,55 @@ const listenStarter = () => {
    */
 
   const body = document.body
-  body.addEventListener("click", (e) => {
-    const clickedElementSelector = extract_css_selector(e.target)
-    chrome.storage.sync.set({ clickedElementSelector });
-    console.log(clickedElementSelector)
+  body.addEventListener("click", async (e) => {
+    const clickedElementSelectorString = extract_css_selector(e.target)
+    chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
+      let toPush = [];
+      
+      if(clickedElements) toPush = [...clickedElements, clickedElementSelectorString];
+      else toPush = [clickedElementSelectorString]
+      
+      chrome.storage.sync.set({ "clickedElements" : toPush });
+      console.log(`Element with css selector "${clickedElementSelectorString}" was clicked`)
+    });
   });
+}
+
+const saveActions = () =>{
+  chrome.storage.sync.get("clickedElements", ({ clickedElements }) => {
+    console.log(clickedElements);
+  });
+}
+
+const clearClickedElements = () => {
+  chrome.storage.sync.set({ "clickedElements" : [] })
+  console.log(`Clicked Elements array was emptied`)
 }
 
 const initialize = () => {
   const listenButton = document.getElementById("listen-button")
   const replayButton = document.getElementById("replay-button")
+  const saveButton = document.getElementById("save-button")
+  const clearButton = document.getElementById("clear-button")
 
   replayButton.addEventListener('click', (e) => {
     e.preventDefault()
     startReplaying()
   })
 
+  saveButton.addEventListener('click', (e) => {
+    e.preventDefault()
+    saveActions()
+  })
+
   listenButton.addEventListener('click', (e) => {
     e.preventDefault()
     startListening()
+  })
+
+  clearButton.addEventListener('click', (e) => {
+    e.preventDefault()
+    clearClickedElements()
   })
 }
 
