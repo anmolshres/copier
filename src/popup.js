@@ -50,8 +50,18 @@ const replayStarter = () => {
     
     console.log(`Clicking element with css selectors: "${clickedElements}"`)
 
-    for(const elemString of clickedElements) { 
-      document.querySelector(elemString).click();
+    for(const elemString of clickedElements) {
+      let elementToClick = document.querySelector(elemString)
+
+      while(true){
+        try {
+          elementToClick.click();
+          break
+        } catch (_error) {
+          elementToClick = elementToClick.parentElement
+          continue
+        }
+      }
     }
   });
 }
@@ -152,6 +162,7 @@ const listenStarter = () => {
    * End of code from Cindy Wang at https://github.com/CindyLinz/JS-extract-css-selector
    */
 
+  /** */
   const body = document.body
   body.addEventListener("click", async (e) => {
     const clickedElementSelectorString = extract_css_selector(e.target)
