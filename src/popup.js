@@ -24,12 +24,27 @@
 
 
 async function startListening() {
-  // When the button is clicked, inject setPageBackgroundColor into current page
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     function: listenStarter,
+  });
+}
+
+async function startReplaying() {
+  let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    function: replayStarter,
+  });
+}
+
+const replayStarter = () => {
+  chrome.storage.sync.get("clickedElementSelector", ({ clickedElementSelector }) => {
+    console.log(`Clicking element with css selector: "${clickedElementSelector}"`)
+    document.querySelector(clickedElementSelector).click();
   });
 }
 
@@ -139,6 +154,12 @@ const listenStarter = () => {
 
 const initialize = () => {
   const listenButton = document.getElementById("listen-button")
+  const replayButton = document.getElementById("replay-button")
+
+  replayButton.addEventListener('click', (e) => {
+    e.preventDefault()
+    startReplaying()
+  })
 
   listenButton.addEventListener('click', (e) => {
     e.preventDefault()
