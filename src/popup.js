@@ -71,8 +71,9 @@ const replayStarter = () => {
       return
     }
     
+    const startTime = clickedElements[0].actionTime
     for(const actionItem of clickedElements) {
-      replayAction(actionItem)
+      setTimeout(() => replayAction(actionItem), (actionItem.actionTime - startTime))
     }
   });
 }
